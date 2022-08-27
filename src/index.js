@@ -7,19 +7,7 @@ let axiosInstance = axios.create({
     baseURL: "http://localhost:3000/"
 });
 
-const addUserTokenToHeader = (accessToken) => {
-    return new Promise((resolve, reject) => {
-        console.log(accessToken);
-        if (accessToken.length > 0) {
-            let headerRequest = `Bearer ${accessToken}`;
-            resolve(headerRequest);
-        } else {
-            reject(false);
-        }
-    });
-};
-
-const start = async () => {
+(async () => {
     let body = {
         user: "BankinUser",
         password: "12345678"
@@ -93,31 +81,4 @@ const start = async () => {
      .catch((error) => {
         console.error(error);
      });
-};
-
-start();
-
-// (async () => {
-//     let body = {
-//         user: "BankinUser",
-//         password: "12345678"
-//     };
-
-//     axiosInstance.post(`login`, body, {
-//         headers: {
-//             "Authorization": auth
-//         }
-//     });
-
-//     console.log(accessToken.data.accessToken);
-
-//     axiosInstance.get(`accounts`, {
-//         headers: `Bearer ${accessToken.data.accessToken}`
-//     })
-//      .then((res) => {
-//         console.log(res.data);
-//      })
-//      .catch((error) => {
-//         console.log(error);
-//      })
-// })();
+})();
