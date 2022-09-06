@@ -8,77 +8,51 @@ let axiosInstance = axios.create({
 });
 
 (async () => {
-    let body = {
-        user: "BankinUser",
-        password: "12345678"
-    };
-
-    axiosInstance.post(`login`, body, {
-        headers: {
-            "Authorization": auth
-        }
-    })
-     .then((res) => {
-        let refreshToken = res.data["refresh_token"];
-        console.log(`[ REFRESH TOKEN ] ${refreshToken}`);
-        return refreshToken;
-     })
-     .then((refreshToken) => {
+    try {
+        let body = {
+            user: "BankinUser",
+            password: "12345678"
+        };
+        let refreshToken = (await axiosInstance.post(`login`, body, {
+            headers: {
+                "Authorization": auth
+            }
+        })).data["refresh_token"];
         const params = new URLSearchParams();
         params.append("grant_type",'refresh_token');
         params.append('refresh_token', refreshToken);
-        
-        axiosInstance.post(`token`, params, {
+        let accessToken = (await axiosInstance.post(`token`, params, {
             headers: {
                 "content-type": "application/x-www-form-urlencoded"
             },
-        })
-         .then((res) => {
-            let accessToken = res.data["access_token"];
-            console.log(`[ ACCESS TOKEN ] ${accessToken}`);
-            return accessToken
-         })
-         .then((accessToken) => {
-            axiosInstance.get(`accounts`, {
+        })).data["access_token"];
+        let accounts = (await axiosInstance.get(`accounts`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`
+            }
+        })).data.account;
+        let datasParsed = [];
+        let index = 0;
+    
+        for await (let account of accounts) {
+            let accountNumber = account['acc_number'];
+            let result = await axiosInstance.get(`accounts/${accountNumber}/transactions`, {
                 headers: {
                     Authorization: `Bearer ${accessToken}`
                 }
-            })
-             .then(async (res) => {
-                let accounts = res.data.account;
-                let datasParsed = [];
-
-                accounts = await accounts.map(async (account, index) => {
-                    let accountNumber = account['acc_number'];
-                    let result = await axiosInstance.get(`accounts/${accountNumber}/transactions`, {
-                        headers: {
-                            Authorization: `Bearer ${accessToken}`
-                        }
-                    });
-                    const { transactions } = result.data;
-                    account.transactions = [{
-                        label: transactions.length > 0 ? transactions[index].label : "",
-                        amount: transactions.length > 0 ? transactions[index].amount : "",
-                        currency: transactions.length > 0 ? transactions[index].currency : ""
-                    }];
-                    datasParsed.push(account);
-                    console.log(datasParsed);
-                    return datasParsed;
-                });
-                return accounts;
-             })
-             .then((accountsParsed) => {
-                console.log(accountsParsed);
-             })
-             .catch((error) => {
-                console.error(error);
-             })
-         })
-         .catch((error) => {
-            console.error(error);
-         })
-     })
-     .catch((error) => {
-        console.error(error);
-     });
+            });
+            const { transactions } = result.data;
+            account.transactions = [{
+                label: transactions.length > 0 ? transactions[index].label : "",
+                amount: transactions.length > 0 ? transactions[index].amount : "",
+                currency: transactions.length > 0 ? transactions[index].currency : ""
+            }];
+            datasParsed.push(JSON.stringify(account));
+            index++;
+        }
+    
+        console.log(datasParsed);
+    } catch (error) {
+        console.log(error);
+    }
 })();
